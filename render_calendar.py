@@ -224,18 +224,18 @@ def generate_image():
         "ev_time": ImageFont.truetype(r_font, 19),
     }
 
-    # 1. Top Header Bar (Date/Time -> Next Event Reminder -> Wollongong Weather)
+    # 1. Top Header Bar (Date + Blank Live-Clock Slot -> Next Event Reminder -> Wollongong Weather)
     left_margin = 32
     right_margin = WIDTH - 32
 
     draw.text((left_margin, 24), now.strftime("%B %d"), font=fonts["top_date"], fill=0)
-    time_str = now.strftime("%I:%M %p")
-    draw.text((left_margin, 64), time_str, font=fonts["top_time"], fill=0)
+
+    # Reserve exact width of "00:00 AM" so the reminder box stays aligned while Kindle draws the live clock
+    sample_time_w = draw.textlength("00:00 AM", font=fonts["top_time"])
 
     weather_left_x = draw_weather_widget(draw, weather, right_margin, fonts)
 
-    time_w = draw.textlength(time_str, font=fonts["top_time"])
-    rem_x1 = left_margin + time_w + 35
+    rem_x1 = left_margin + sample_time_w + 35
     rem_x2 = weather_left_x - 30
     draw_reminder_box(draw, badge, rem_title, rem_sub, rem_x1, rem_x2, fonts)
 
