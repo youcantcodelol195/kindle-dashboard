@@ -11,7 +11,7 @@ ICAL_URL = os.environ["ICAL_URL"]
 TIMEZONE = "Australia/Sydney"
 LOCATION_NAME = "Wollongong"
 LATITUDE, LONGITUDE = -34.4244, 150.8939
-WIDTH, HEIGHT = 1648, 1236  # Landscape canvas for 11th Gen Paperwhite (use 1448, 1072 for Basic)
+WIDTH, HEIGHT = 1448, 1072  # Exact landscape dimensions for your 1072x1448 Kindle screen
 ROTATE_DEGREES = 90         # Set to 90 or 270 depending on which side your stand rests on
 OUTPUT_PATH = "dashboard.png"
 
