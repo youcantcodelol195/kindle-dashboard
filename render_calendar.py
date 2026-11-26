@@ -103,7 +103,27 @@ def get_week_events(tz, now):
                 "end": day_dt + datetime.timedelta(minutes=45),
                 "all_day": True,
             })
+
+    parsed.sort(key=lambda e: e["start"])
     return monday, parsed
+
+
+def get_next_reminder(events, now):
+    todays_events = [e for e in events if e["start"].date() == now.date()]
+    upcoming_timed = [e for e in todays_events if not e["all_day"] and e["end"] >= now]
+    all_day_today = [e for e in todays_events if e["all_day"]]
+
+    if upcoming_timed:
+        nxt = upcoming_timed[0]
+        is_happening = nxt["start"] <= now <= nxt["end"]
+        badge = "NOW" if is_happening else "UP NEXT"
+        time_lbl = nxt["start"].strftime("%I:%M %p").lstrip("0")
+        return badge, nxt["title"], f"Today at {time_lbl}"
+    elif all_day_today:
+        rem = all_day_today[0]
+        return "REMINDER", rem["title"], "All Day Today"
+    else:
+        return "TODAY", "No more events scheduled", "Enjoy the rest of your day"
 
 
 def wrap_text(draw, text, font, max_width):
@@ -138,7 +158,6 @@ def draw_weather_icon(draw, cx, cy, icon_type):
 
 
 def draw_weather_widget(draw, weather, right_edge, fonts):
-    # Right-aligned layout in the top-right corner
     temp_w = draw.textlength(weather["temp"], font=fonts["w_temp"])
     header_line = f"{LOCATION_NAME}  •  {weather['cond']}"
     header_w = draw.textlength(header_line, font=fonts["w_cond"])
@@ -149,11 +168,32 @@ def draw_weather_widget(draw, weather, right_edge, fonts):
     temp_x = text_x - temp_w - 24
     icon_cx = temp_x - 45
 
-    # Draw Weather Icon, Current Temp, and 2-Line Forecast Details
     draw_weather_icon(draw, icon_cx, 72, weather["icon"])
     draw.text((temp_x, 38), weather["temp"], font=fonts["w_temp"], fill=0)
     draw.text((text_x, 40), header_line, font=fonts["w_cond"], fill=0)
     draw.text((text_x, 78), weather["details"], font=fonts["w_sub"], fill=60)
+    return icon_cx - 45
+
+
+def draw_reminder_box(draw, badge, title, subtitle, x1, x2, fonts):
+    if x2 - x1 < 220:
+        return
+    draw.rounded_rectangle([x1, 26, x2, 118], radius=14, fill=244, outline=170, width=2)
+
+    # Dark Badge Pill (UP NEXT / NOW / REMINDER)
+    badge_w = draw.textlength(badge, font=fonts["rem_badge"]) + 24
+    draw.rounded_rectangle([x1 + 16, 40, x1 + 16 + badge_w, 68], radius=8, fill=35)
+    draw.text((x1 + 28, 45), badge, font=fonts["rem_badge"], fill=255)
+
+    # Subtitle next to badge (e.g., "Today at 2:30 PM")
+    draw.text((x1 + 26 + badge_w, 44), subtitle, font=fonts["rem_sub"], fill=60)
+
+    # Event Title (truncated cleanly to fit box width)
+    max_title_w = (x2 - x1) - 32
+    disp_title = title
+    while draw.textlength(disp_title, font=fonts["rem_title"]) > max_title_w and len(disp_title) > 4:
+        disp_title = disp_title[:-4] + "..."
+    draw.text((x1 + 16, 78), disp_title, font=fonts["rem_title"], fill=0)
 
 
 def generate_image():
@@ -161,6 +201,7 @@ def generate_image():
     now = datetime.datetime.now(tz)
     weather = get_weather()
     monday, events = get_week_events(tz, now)
+    badge, rem_title, rem_sub = get_next_reminder(events, now)
 
     img = Image.new("L", (WIDTH, HEIGHT), 255)
     draw = ImageDraw.Draw(img)
@@ -171,7 +212,9 @@ def generate_image():
     fonts = {
         "top_date": ImageFont.truetype(b_font, 32),
         "top_time": ImageFont.truetype(b_font, 56),
-        "pill": ImageFont.truetype(r_font, 24),
+        "rem_badge": ImageFont.truetype(b_font, 17),
+        "rem_sub": ImageFont.truetype(r_font, 20),
+        "rem_title": ImageFont.truetype(b_font, 25),
         "w_temp": ImageFont.truetype(b_font, 54),
         "w_cond": ImageFont.truetype(b_font, 26),
         "w_sub": ImageFont.truetype(r_font, 22),
@@ -181,7 +224,7 @@ def generate_image():
         "ev_time": ImageFont.truetype(r_font, 19),
     }
 
-    # 1. Top Header Bar (Full Width)
+    # 1. Top Header Bar (Date/Time -> Next Event Reminder -> Wollongong Weather)
     left_margin = 32
     right_margin = WIDTH - 32
 
@@ -189,14 +232,12 @@ def generate_image():
     time_str = now.strftime("%I:%M %p")
     draw.text((left_margin, 64), time_str, font=fonts["top_time"], fill=0)
 
-    # "Schedule v" Pill
-    time_w = draw.textlength(time_str, font=fonts["top_time"])
-    pill_x = left_margin + time_w + 35
-    draw.rounded_rectangle([pill_x, 66, pill_x + 175, 114], radius=22, fill=242, outline=180, width=2)
-    draw.text((pill_x + 22, 77), "Schedule  v", font=fonts["pill"], fill=20)
+    weather_left_x = draw_weather_widget(draw, weather, right_margin, fonts)
 
-    # Top-Right Wollongong Weather Widget (Replaces Filter & Wi-Fi)
-    draw_weather_widget(draw, weather, right_margin, fonts)
+    time_w = draw.textlength(time_str, font=fonts["top_time"])
+    rem_x1 = left_margin + time_w + 35
+    rem_x2 = weather_left_x - 30
+    draw_reminder_box(draw, badge, rem_title, rem_sub, rem_x1, rem_x2, fonts)
 
     # 2. Full-Width Weekly Grid Geometry
     axis_w = 115
