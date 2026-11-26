@@ -210,8 +210,8 @@ def generate_image():
     r_font = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 
     fonts = {
-        "top_date": ImageFont.truetype(b_font, 32),
-        "top_time": ImageFont.truetype(b_font, 56),
+        "top_day": ImageFont.truetype(b_font, 32),
+        "top_date": ImageFont.truetype(b_font, 56),
         "rem_badge": ImageFont.truetype(b_font, 17),
         "rem_sub": ImageFont.truetype(r_font, 20),
         "rem_title": ImageFont.truetype(b_font, 25),
@@ -224,18 +224,19 @@ def generate_image():
         "ev_time": ImageFont.truetype(r_font, 19),
     }
 
-    # 1. Top Header Bar (Date/Time -> Next Event Reminder -> Wollongong Weather)
+    # 1. Top Header Bar (Day & Date -> Next Event Reminder -> Wollongong Weather)
     left_margin = 32
     right_margin = WIDTH - 32
 
-    draw.text((left_margin, 24), now.strftime("%B %d"), font=fonts["top_date"], fill=0)
-    time_str = now.strftime("%I:%M %p")
-    draw.text((left_margin, 64), time_str, font=fonts["top_time"], fill=0)
+    day_str = now.strftime("%A")
+    date_str = now.strftime("%B %d")
+    draw.text((left_margin, 24), day_str, font=fonts["top_day"], fill=60)
+    draw.text((left_margin, 64), date_str, font=fonts["top_date"], fill=0)
 
     weather_left_x = draw_weather_widget(draw, weather, right_margin, fonts)
 
-    time_w = draw.textlength(time_str, font=fonts["top_time"])
-    rem_x1 = left_margin + time_w + 35
+    date_w = draw.textlength(date_str, font=fonts["top_date"])
+    rem_x1 = left_margin + date_w + 35
     rem_x2 = weather_left_x - 30
     draw_reminder_box(draw, badge, rem_title, rem_sub, rem_x1, rem_x2, fonts)
 
