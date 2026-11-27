@@ -2,8 +2,8 @@ name: Update Kindle Dashboard
 
 on:
   schedule:
-    - cron: '*/15 * * * *' # Runs every 15 minutes
-  workflow_dispatch:        # Lets you trigger a run manually
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -12,7 +12,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -20,9 +21,9 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: pip install requests icalendar recurring-ical-events pillow pytz
+        run: pip install pytz requests icalendar recurring-ical-events pillow
 
-      - name: Generate dashboard image
+      - name: Render dashboard
         env:
           ICAL_URL: ${{ secrets.ICAL_URL }}
         run: python render_calendar.py
@@ -32,5 +33,4 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add dashboard.png
-          git diff --staged --quiet || git commit -m "Update dashboard"
-          git push
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Update dashboard" && git push)
